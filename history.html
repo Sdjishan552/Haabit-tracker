@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Discipline History</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
   <style>
     .history-day-card {
       cursor: pointer;
@@ -38,6 +40,7 @@
 <header>
   <h1>Past Days</h1>
   <div id="summary">Your discipline record</div>
+  
 </header>
 
 <main id="historyContainer">
@@ -102,7 +105,33 @@ const percent = totalPossible > 0 ? Math.round((earned / totalPossible) * 100) :
   const missed = mainEvents.filter(e => e.score === 0 && e.delay === 999).length;
   const hydrationDone = log.filter(e => e.name === "Drink Water" && e.score > 0).length;
   const hydrationTotal = log.filter(e => e.name === "Drink Water").length;
-  const timeWasted = log.reduce((sum, e) => sum + (e.delay === 999 ? 60 : 0), 0); // approx 60 min per missed event
+
+  // New correct timeWasted (merges overlaps, no double-count)
+  let timeWasted = 0;
+  const missedIntervals = mainEvents
+    .filter(e => e.delay === 999)
+    .map(e => {
+      const ev = tt.find(ttEv => ttEv.name === e.name);
+      return ev ? { start: toMinutes(ev.start), end: toMinutes(ev.end) } : null;
+    })
+    .filter(Boolean);
+
+  if (missedIntervals.length > 0) {
+    missedIntervals.sort((a, b) => a.start - b.start);
+    let currentStart = missedIntervals[0].start;
+    let currentEnd = missedIntervals[0].end;
+    for (let i = 1; i < missedIntervals.length; i++) {
+      if (missedIntervals[i].start >= currentEnd) {
+        timeWasted += currentEnd - currentStart;
+        currentStart = missedIntervals[i].start;
+        currentEnd = missedIntervals[i].end;
+      } else {
+        currentEnd = Math.max(currentEnd, missedIntervals[i].end);
+      }
+    }
+    timeWasted += currentEnd - currentStart;
+  }
+
   const totalDelay = mainEvents.reduce((sum, e) => sum + (e.delay || 0), 0);
   const avgDelay = mainEvents.length ? Math.round(totalDelay / mainEvents.length) : 0;
 
@@ -137,8 +166,7 @@ if (days.length === 0) {
     const card = document.createElement("div");
     card.className = "card history-day-card";
     card.innerHTML = `
-      <h2>${day}</h2>
-      <p><strong>Discipline Score:</strong> ${stats.percent}%</p>
+<h2>${day.split('-').reverse().join('-')}</h2>      <p><strong>Discipline Score:</strong> ${stats.percent}%</p>
       <p>${stats.remark}</p>
       <small>Tap to see full details</small>
     `;
@@ -158,8 +186,7 @@ function showDayDetails(day, stats) {
     </div>
 
     <div class="card detail-card">
-      <h2>${day} - Full Day Breakdown</h2>
-
+<h2>${day.split('-').reverse().join('-')} - Full Day Breakdown</h2>
       <h3>Discipline Overview</h3>
       <p><strong>Score:</strong> ${stats.percent}%</p>
       <p><strong>Status:</strong> ${stats.remark}</p>
