@@ -4,20 +4,38 @@
 
 /* ========= NOTIFICATIONS ========= */
 function requestNotificationPermission() {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
+  if ("Notification" in window) {
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          console.log("Notification permission granted.");
+        } else {
+          console.log("Notification permission denied.");
+        }
+      });
+    } else if (Notification.permission === "granted") {
+      console.log("Notification permission already granted.");
+    } else {
+      console.log("Notification permission denied.");
+    }
+  } else {
+    console.log("Notifications not supported in this browser.");
   }
 }
 
 function notify(title, body) {
   if ("Notification" in window && Notification.permission === "granted") {
+    console.log("Showing notification: " + title);
     new Notification(title, { body });
+  } else {
+    console.log("Cannot show notification: permission not granted.");
   }
 }
 
 /* ========= SOUND ALERT ========= */
 let soundPlayedForSlot = null;
 let ignoredHydrationSlots = [];  // array of {slot, startMin} that were ignored and need nagging
+
 function playAlertSound(slotKey) {
   if (soundPlayedForSlot === slotKey) return;
 
@@ -29,6 +47,8 @@ function playAlertSound(slotKey) {
   const playThreeTimes = () => {
     audio.currentTime = 0;
     audio.play().catch(() => {});
+    console.log("Playing alert sound for slot: " + slotKey);  // ← debug log
+
     count++;
     if (count < 3) {
       setTimeout(playThreeTimes, 1200); // ~1.2 seconds between beeps
@@ -39,6 +59,7 @@ function playAlertSound(slotKey) {
 
   playThreeTimes();
 }
+
 function minutesToTime(mins) {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -48,7 +69,6 @@ function minutesToTime(mins) {
     .toString()
     .padStart(2, "0")} ${ampm}`;
 }
-
 /* ========= HELPERS ========= */
 function toMinutes(t) {
   const [h, m] = t.split(":").map(Number);
@@ -158,7 +178,8 @@ function render() {
     }
 
     container.innerHTML = ""; // clear old content
-
+    
+    
     const activeEvents = getCurrentMainEvent();
     const log = getLog();
     const waterInfo = shouldShowWaterReminder();
@@ -514,7 +535,22 @@ function shouldShowWaterReminder() {
 
   return { slot, startMinute: startMin, isNag: false };
 }
+function getWaterReminder() {
+  const dayStart = parseInt(localStorage.getItem("dayStart") || '360'); // 6 AM default
+  const elapsed = nowMinutes() - dayStart;
+  if (elapsed < 0) return null; // Before day start
 
+  const slot = Math.floor(elapsed / 60);
+  const lastMarked = localStorage.getItem("lastWaterSlot_" + todayKey());
+  if (lastMarked === String(slot)) return null;
+
+  const startMin = dayStart + slot * 60;
+  if (elapsed < slot * 60) return null; // Not yet time
+
+  console.log("Hydration reminder triggered for slot: " + slot); // Debug
+
+  return { slot, startMinute: startMin, isNag: false };
+}
 function trackIgnoredHydration(waterInfo) {
   if (!waterInfo || waterInfo.isNag) return;
 
@@ -596,3 +632,34 @@ window.addEventListener("storage", (e) => {
         updateLiveUI();
     }
 });
+// Helper to calculate total unique scheduled minutes from timetable (merges overlaps)
+function getTotalUniqueScheduledMinutes(tt) {
+  if (tt.length === 0) return 0;
+
+  // Sort events by start time
+  const events = tt.slice().sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+
+  let total = 0;
+  let currentStart = toMinutes(events[0].start);
+  let currentEnd = toMinutes(events[0].end);
+
+  for (let i = 1; i < events.length; i++) {
+    const start = toMinutes(events[i].start);
+    const end = toMinutes(events[i].end);
+
+    if (start >= currentEnd) {
+      // No overlap, add previous duration
+      total += currentEnd - currentStart;
+      currentStart = start;
+      currentEnd = end;
+    } else {
+      // Overlap, extend end if needed
+      currentEnd = Math.max(currentEnd, end);
+    }
+  }
+
+  // Add the last interval
+  total += currentEnd - currentStart;
+
+  return total;
+}
