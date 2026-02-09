@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discipline History</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .history-day-card {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .history-day-card:hover {
+      background: #f0f8ff;
+      border: 1px solid #2196f3;
+      transform: scale(1.02);
+    }
+    .detail-card ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    .detail-card li {
+      margin-bottom: 8px;
+    }
+    .back-btn {
+      padding: 10px 20px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Past Days</h1>
+  <div id="summary">Your discipline record</div>
+</header>
+
+<main id="historyContainer">
+  <!-- Cards will be injected here -->
+</main>
+
+<footer>
+  <button onclick="goHome()">⬅ Home</button>
+</footer>
+
+<script>
+  function getTimetable() {
+  return JSON.parse(localStorage.getItem("timetable")) || [];
+}
+/* ========= HELPERS ========= */
+function getAllDays() {
+  return Object.keys(localStorage)
+    .filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k))
+    .sort()
+    .reverse();
+}
+
+function calcDayStats(dayKey) {
+  const log = JSON.parse(localStorage.getItem(dayKey)) || [];
+  if (log.length === 0) {
+    return { percent: 0, remark: "No activity", completed: 0, missed: 0, hydrationDone: 0, hydrationTotal: 0, timeWasted: 0, avgDelay: 0, events: [] };
+  }
+
+// Discipline score - correct version using timetable severity
+const tt = getTimetable();
+
+const mainEvents = log.filter(e => e.phase !== "micro" && e.phase !== "hydration");
+
+// We use unique events + severity from timetable
+const uniqueNames = [...new Set(mainEvents.map(e => e.name))];
+
+let totalPossible = 0;
+let earned = 0;
+
+uniqueNames.forEach(name => {
+  const entry = mainEvents.find(e => e.name === name);
+  if (!entry) return;
+
+  const eventInTimetable = tt.find(ev => ev.name === name);
+  const severity = eventInTimetable ? eventInTimetable.severity : (entry.severity || 1);
+
+  const maxScore = severity * 10;
+
+  totalPossible += maxScore;
+  earned += entry.score || 0;
+});
+
+const percent = totalPossible > 0 ? Math.round((earned / totalPossible) * 100) : 0;
+
+  let remark = "Discipline unstable.";
+  if (percent >= 85) remark = "Strong discipline. Exam-ready.";
+  else if (percent >= 70) remark = "Average. Needs tightening.";
+  else remark = "Poor discipline. Serious correction needed.";
+
+  // Extra stats
+  const completed = mainEvents.filter(e => e.score > 0).length;
+  const missed = mainEvents.filter(e => e.score === 0 && e.delay === 999).length;
+  const hydrationDone = log.filter(e => e.name === "Drink Water" && e.score > 0).length;
+  const hydrationTotal = log.filter(e => e.name === "Drink Water").length;
+  const timeWasted = log.reduce((sum, e) => sum + (e.delay === 999 ? 60 : 0), 0); // approx 60 min per missed event
+  const totalDelay = mainEvents.reduce((sum, e) => sum + (e.delay || 0), 0);
+  const avgDelay = mainEvents.length ? Math.round(totalDelay / mainEvents.length) : 0;
+
+  return {
+    percent,
+    remark,
+    completed,
+    missed,
+    hydrationDone,
+    hydrationTotal,
+    timeWasted,
+    avgDelay,
+    events: mainEvents
+  };
+}
+
+/* ========= RENDER LIST ========= */
+const container = document.getElementById("historyContainer");
+const days = getAllDays();
+
+if (days.length === 0) {
+  container.innerHTML = `
+    <div class="card">
+      <h2>No data yet</h2>
+      <p>Start following your schedule to see history.</p>
+    </div>
+  `;
+} else {
+  days.forEach(day => {
+    const stats = calcDayStats(day);
+
+    const card = document.createElement("div");
+    card.className = "card history-day-card";
+    card.innerHTML = `
+      <h2>${day}</h2>
+      <p><strong>Discipline Score:</strong> ${stats.percent}%</p>
+      <p>${stats.remark}</p>
+      <small>Tap to see full details</small>
+    `;
+
+    // Click to show details
+    card.onclick = () => showDayDetails(day, stats);
+
+    container.appendChild(card);
+  });
+}
+
+/* ========= SHOW DETAILED VIEW ========= */
+function showDayDetails(day, stats) {
+  container.innerHTML = `
+    <div style="margin: 16px 0;">
+      <button class="back-btn" onclick="location.reload()">← Back to list</button>
+    </div>
+
+    <div class="card detail-card">
+      <h2>${day} - Full Day Breakdown</h2>
+
+      <h3>Discipline Overview</h3>
+      <p><strong>Score:</strong> ${stats.percent}%</p>
+      <p><strong>Status:</strong> ${stats.remark}</p>
+      <p><strong>Events Completed:</strong> ${stats.completed} out of ${stats.completed + stats.missed}</p>
+      <p><strong>Missed Events:</strong> ${stats.missed}</p>
+      <p><strong>Time Wasted:</strong> ${stats.timeWasted} minutes</p>
+      <p><strong>Average Start Delay:</strong> ${stats.avgDelay} minutes</p>
+
+      <h3>Hydration</h3>
+      <p><strong>Water Intake:</strong> ${stats.hydrationDone} / ${stats.hydrationTotal} reminders completed</p>
+
+      <h3>Event Details</h3>
+      ${stats.events.length > 0 ? `
+        <ul>
+          ${stats.events.map(e => `
+            <li>
+              <strong>${e.name || 'Unnamed Event'}</strong><br>
+              Score: ${e.score || 0} | Delay: ${e.delay || 0} min | 
+              ${e.score > 0 ? 'Completed' : (e.delay === 999 ? 'Missed' : 'Late / Partial')}
+            </li>
+          `).join('')}
+        </ul>
+      ` : '<p>No main events recorded this day.</p>'}
+    </div>
+  `;
+}
+
+/* ========= NAV ========= */
+function goHome() {
+  window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
