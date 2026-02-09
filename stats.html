@@ -7,6 +7,7 @@
 
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
 </head>
 <body>
 
@@ -15,6 +16,11 @@
 <h1>Stats Dashboard</h1>
 <div id="summary">Loading...</div>  <!-- NEW: for overall summary text -->    <button onclick="goHome()">⬅ Home</button>
   </div>
+  <div style="margin: 12px 0;">
+  <button onclick="window.location.href='event-stats.html'" style="padding:10px 20px; font-size:16px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer;">
+    → Detailed Event Performance
+  </button>
+</div>
 
   <div>
     <button onclick="setRange('day')">Today</button>
@@ -266,8 +272,7 @@ data.forEach(d => {
   let dayWaste = 0, dayScheduled = 0;
   
   if (tt.length > 0) {
-    dayScheduled = tt.reduce((sum, ev) => sum + (toMinutes(ev.end) - toMinutes(ev.start)), 0);
-    
+dayScheduled = getTotalUniqueScheduledMinutes(tt);    
     let earnedMinutes = 0;
     d.log.forEach(entry => {
       if (entry.phase === "micro" || entry.phase === "hydration") return;
