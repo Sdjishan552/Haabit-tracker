@@ -20,7 +20,8 @@
     }
   </style>
 </head>
-<body>
+<body class="admin-body">
+
 
 <header>
   <h1>Admin Panel</h1>
@@ -47,7 +48,8 @@ function askForPin() {
 
   if (!savedPin) {
     main.innerHTML = `
-      <div class="card">
+      <div class="card admin-card">
+
         <h2>Set Admin PIN</h2>
         <input id="newPin" type="password" placeholder="Create PIN">
         <button onclick="setPin()">Set PIN</button>
@@ -55,7 +57,8 @@ function askForPin() {
     `;
   } else {
     main.innerHTML = `
-      <div class="card">
+      <div class="card admin-card">
+
         <h2>Enter Admin PIN</h2>
         <input id="pinInput" type="password" placeholder="Enter PIN">
         <button onclick="verifyPin()">Unlock</button>
