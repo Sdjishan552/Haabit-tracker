@@ -153,7 +153,9 @@ function render() {
         waterCard.innerHTML = `
             <h2>💧 Drink Water (Hour ${waterInfo.slot + 1})</h2>
             <p>${formatNow()}</p>
-            <button class="start-btn" onclick="markWater(${waterInfo.slot}, ${waterInfo.startMinute})">
+<button class="water-btn"
+        data-slot="${waterInfo.slot}"
+        data-start="${waterInfo.startMinute}">
                 ✔ Done
             </button>
         `;
@@ -241,6 +243,15 @@ function render() {
         btn.removeEventListener('click', handleStartClick);
         btn.addEventListener('click', handleStartClick);
     });
+    // Bind hydration buttons
+document.querySelectorAll('.water-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const slot = Number(this.dataset.slot);
+        const startMinute = Number(this.dataset.start);
+        markWater(slot, startMinute);
+    });
+});
+
 }
 // Ensure the buttons are clickable by adding event listeners again after rendering new events.
 function bindEventButtons() {
@@ -384,8 +395,11 @@ function syncLogsWithTimetable() {
 
   const log = getLog();
   const cleaned = log.filter(e =>
-    e.phase === "micro" || validNames.includes(e.name)
-  );
+  e.phase === "micro" ||
+  e.phase === "hydration" ||
+  validNames.includes(e.name)
+);
+
 
   if (cleaned.length !== log.length) {
     saveLog(cleaned);
@@ -477,10 +491,21 @@ function markWaterDone(slot) {
 }
 
 function markWater(slot, startMinute) {
+  const log = getLog();
+
+  // 🚫 Prevent duplicate logging for same slot
+  const alreadyLogged = log.some(
+    e => e.name === "Drink Water" && e.slot === slot
+  );
+
+  if (alreadyLogged) {
+    render();
+    return;
+  }
+
   const delay = Math.max(0, nowMinutes() - startMinute);
   const score = delay <= 15 ? 10 - delay : 0;
 
-  const log = getLog();
   log.push({
     name: "Drink Water",
     parent: "Daily Hydration",
@@ -490,11 +515,8 @@ function markWater(slot, startMinute) {
     delay,
     score
   });
+
   saveLog(log);
-
-
-  // Remove from nagging list if marked
-
   render();
 }
 
