@@ -174,8 +174,8 @@ function render() {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-            <h2>No scheduled block right now</h2>
-            <p>Check your timetable</p>
+            <h2>No scheduled event right now</h2>
+        
         `;
         container.appendChild(card);
         phaseInfo.innerText = "—";
