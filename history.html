@@ -95,10 +95,24 @@ uniqueNames.forEach(name => {
 
 const percent = totalPossible > 0 ? Math.round((earned / totalPossible) * 100) : 0;
 
-  let remark = "Discipline unstable.";
-  if (percent >= 85) remark = "Strong discipline. Exam-ready.";
-  else if (percent >= 70) remark = "Average. Needs tightening.";
-  else remark = "Poor discipline. Serious correction needed.";
+  let remark = "";
+
+if (percent >= 90) {
+  remark = "Relentless. This is what controlled ambition looks like. Maintain this or fall.";
+} 
+else if (percent >= 75) {
+  remark = "Strong, but cracks are visible. Excellence tolerates zero excuses.";
+} 
+else if (percent >= 60) {
+  remark = "Mediocre discipline. You negotiated with weakness too many times.";
+} 
+else if (percent >= 40) {
+  remark = "Unstable. You had structure, but you chose comfort instead.";
+} 
+else {
+  remark = "System failure. No discipline. No respect for your own goals.";
+}
+
 
   // Extra stats
   const completed = mainEvents.filter(e => e.score > 0).length;
@@ -204,7 +218,7 @@ function showDayDetails(day, stats) {
           ${stats.events.map(e => `
             <li>
               <strong>${e.name || 'Unnamed Event'}</strong><br>
-              Score: ${e.score || 0} | Delay: ${e.delay || 0} min | 
+Score: ${e.score || 0} | Delay: ${e.delay === 999 ? "Missed" : (e.delay || 0) + " min"} |
               ${e.score > 0 ? 'Completed' : (e.delay === 999 ? 'Missed' : 'Late / Partial')}
             </li>
           `).join('')}
