@@ -19,11 +19,15 @@
 <div id="liveClock" class="live-clock"></div>
 
   <!-- HEADER -->
-  <header>
-    <h1>Daily Discipline</h1>
-    <div id="phaseInfo">Loading…</div>
-  </header>
-  
+  <header class="home-header">
+  <h1>Daily Discipline</h1>
+
+  <div class="header-right">
+    <span id="phaseInfo">Loading…</span>
+    <button class="bell-btn" onclick="goNotifications()">🔔</button>
+  </div>
+</header>
+
 
     <!-- MAIN CONTENT -->
   <main id="mainContainer">
@@ -53,6 +57,9 @@
         .then(reg => console.log('Service Worker registered', reg))
         .catch(err => console.error('Service Worker registration failed:', err));
     });
+  }
+  function goNotifications() {
+    location.href = "notifications.html";
   }
 </script>
 </body>
