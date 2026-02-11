@@ -99,20 +99,41 @@ function renderNotifications() {
   /* =========================
      3️⃣ Missed Events Today
   ==========================*/
-  const missedEvents = log.filter(e =>
-    e.delay === 999 && e.name !== "Drink Water"
-  );
+ /* =========================
+   ❌ Missed Events Today (With Time)
+==========================*/
 
-  const missedCard = document.createElement("div");
-  missedCard.className = "card";
-  missedCard.innerHTML = `
-    <h2>❌ Missed Today</h2>
-    ${missedEvents.length ?
-      missedEvents.map(e => `<p>${e.name}</p>`).join("")
-      : "<p>No missed events today.</p>"
-    }
-  `;
-  container.appendChild(missedCard);
+const missedEvents = log.filter(e =>
+  e.delay === 999 && e.name !== "Drink Water"
+);
+
+const missedCard = document.createElement("div");
+missedCard.className = "card";
+
+missedCard.innerHTML = `
+  <h2>❌ Missed Today</h2>
+  ${missedEvents.length ?
+    missedEvents.map(e => {
+      const eventInfo = timetable.find(t => t.name === e.name);
+
+      let timeText = "";
+      if (eventInfo) {
+        timeText = `${formatTime12(eventInfo.start)} – ${formatTime12(eventInfo.end)}`;
+      }
+
+      return `
+        <p>
+          <strong>${e.name}</strong><br>
+          ${timeText}
+        </p>
+      `;
+    }).join("")
+    : "<p>No missed events today.</p>"
+  }
+`;
+
+container.appendChild(missedCard);
+
 
   /* =========================
      4️⃣ Hydration Status
@@ -145,4 +166,3 @@ renderNotifications();
 
 </body>
 </html>
-
