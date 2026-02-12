@@ -53,16 +53,14 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/Haabit-tracker/service-worker.js', {scope: '/your-repo/'})
+navigator.serviceWorker.register('service-worker.js')
         .then(reg => console.log('Service Worker registered', reg))
         .catch(err => console.error('Service Worker registration failed:', err));
     });
   }
   function goNotifications() {
-    location.href = "notifications.html";
+location.href = "./notifications.html";
   }
 </script>
 </body>
 </html>
-
-
