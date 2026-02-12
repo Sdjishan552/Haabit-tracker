@@ -215,20 +215,56 @@ function render() {
         playAlertSound(slotKey);
     }
 
-    if (activeEvents.length === 0) {
-  if (phaseInfo) phaseInfo.innerText = "No Active Phase";
-} else {
-  const phases = activeEvents
-    .map(e => e.phase || "")
-    .filter(p => p !== "");
-
-  if (phaseInfo) {
-    phaseInfo.innerText = phases.length > 0
-      ? `Phase ${phases.join(", ")}`
+    // Always set phase header first
+if (phaseInfo) {
+  if (activeEvents.length === 0) {
+    phaseInfo.innerText = "No Active Phase";
+  } else {
+    const phases = [...new Set(
+      activeEvents.map(e => e.phase || "Unknown").filter(p => p !== "Unknown")
+    )];
+    phaseInfo.innerText = phases.length > 0 
+      ? `Phase ${phases.join(", ")}` 
       : "Active Event";
   }
 }
 
+// Now render cards for active events
+activeEvents.forEach(event => {
+  const entry = log.find(e => e.name === event.name);
+  const entryStatus = entry 
+    ? (entry.score === null 
+        ? "🟢 Started | Score: Pending" 
+        : `✅ Completed | Score: ${entry.score}`)
+    : '';
+
+  const eventCard = document.createElement("div");
+  eventCard.className = "card active-event"; // add class if you want styling
+
+  eventCard.innerHTML = `
+    <h2>${event.name || "Unnamed Event"}</h2>
+    <p>${formatNow()}</p>
+    <p>${event.start} – ${event.end}</p>
+    <p>Severity: ${event.severity || 3}</p> <!-- fallback -->
+    ${entryStatus ? `<p>${entryStatus}</p>` : ''}
+    ${!entry ? `
+      <button class="start-btn" 
+              data-name="${event.name}" 
+              data-start="${event.start}" 
+              data-phase="${event.phase || 1}" 
+              data-severity="${event.severity || 3}">
+        ▶ Start Event
+      </button>
+    ` : entry.score === null ? `
+      <p class="status">In Progress – Finish before ${event.end}</p>
+    ` : ''}
+  `;
+
+  container.appendChild(eventCard);
+});
+
+// Debug log so you see in console
+console.log("Active events rendered:", activeEvents.length, activeEvents);
 
 
     activeEvents.forEach(event => {
@@ -282,8 +318,8 @@ function render() {
     });
     // Bind hydration buttons
 document.querySelectorAll('.water-btn').forEach(btn => {
-    btn.removeEventListener('click', handleWaterClick);
-    btn.addEventListener('click', handleWaterClick);
+  btn.removeEventListener('click', handleWaterClick);
+  btn.addEventListener('click', handleWaterClick);
 });
   } catch (err) {
     console.error("Error in render:", err);
