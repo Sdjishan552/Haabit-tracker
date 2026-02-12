@@ -89,8 +89,17 @@ function todayKey() {
 
 /* ========= STORAGE ========= */
 function getLog() {
-  return JSON.parse(localStorage.getItem(todayKey())) || [];
+  try {
+    const raw = localStorage.getItem(todayKey());
+    if (!raw) return [];
+    return JSON.parse(raw) || [];
+  } catch (err) {
+    console.error("Log corrupted. Resetting.", err);
+    localStorage.removeItem(todayKey());
+    return [];
+  }
 }
+
 
 function saveLog(log) {
   localStorage.setItem(todayKey(), JSON.stringify(log));
@@ -98,12 +107,28 @@ function saveLog(log) {
 
 /* ========= TIMETABLE ========= */
 function getTimetable() {
-  const data = JSON.parse(localStorage.getItem("timetable") || "[]");
+  try {
+    const raw = localStorage.getItem("timetable");
+    if (!raw) return [];
 
-  if (!Array.isArray(data)) return [];
+    const data = JSON.parse(raw);
 
-  return data;
+    if (!Array.isArray(data)) return [];
+
+    return data.filter(e =>
+      e &&
+      typeof e.start === "string" &&
+      typeof e.end === "string" &&
+      e.name
+    );
+
+  } catch (err) {
+    console.error("Timetable corrupted. Resetting.", err);
+    localStorage.removeItem("timetable");
+    return [];
+  }
 }
+
 
 
 /* ========= CURRENT EVENT ========= */
@@ -183,13 +208,14 @@ function render() {
         
         `;
         container.appendChild(card);
-        phaseInfo.innerText = "—";
+if (phaseInfo) phaseInfo.innerText = "—";
 
         // Independent daily hydration reminder
         
     }
 
-    phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
+if (phaseInfo)
+  phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
 
     activeEvents.forEach(event => {
         const entry = log.find(e => e.name === event.name);
@@ -404,7 +430,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
-
 
 /* ========= INIT ========= */
 
@@ -622,5 +647,3 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
-
-
