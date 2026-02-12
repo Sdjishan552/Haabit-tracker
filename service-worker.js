@@ -1,4 +1,4 @@
-const CACHE_NAME = "discipline-tracker-v10";  // ← bump to v7 (or higher)
+const CACHE_NAME = "discipline-tracker-v11";  // ← bump to v7 (or higher)
 
 self.addEventListener('install', event => {
   self.skipWaiting();  // Force immediate activation
@@ -49,5 +49,6 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   }
 });
+
 
 
