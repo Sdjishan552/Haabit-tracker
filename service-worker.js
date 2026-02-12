@@ -1,4 +1,4 @@
-const CACHE_NAME = "discipline-tracker-JARVIS v1.7";self.addEventListener("install", event => {
+const CACHE_NAME = "discipline-tracker-JARVIS v1.8";self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
@@ -17,6 +17,7 @@ self.addEventListener("fetch", event => {
       .catch(() => caches.match(event.request))
   );
 });
+
 
 
 
