@@ -365,14 +365,46 @@ function autoMiss() {
   
 }
 
-/* ========= NAV ========= */
-document.getElementById("historyBtn").onclick = () => {
-  window.location.href = "history.html";
-};
+document.addEventListener("DOMContentLoaded", () => {
 
-document.getElementById("statsBtn").onclick = () => {
-  window.location.href = "stats.html";
-};
+  // NAV BUTTONS
+  const historyBtn = document.getElementById("historyBtn");
+  const statsBtn = document.getElementById("statsBtn");
+
+  if (historyBtn) {
+    historyBtn.onclick = () => {
+      window.location.href = "history.html";
+    };
+  }
+
+  if (statsBtn) {
+    statsBtn.onclick = () => {
+      window.location.href = "stats.html";
+    };
+  }
+
+  // INIT
+  requestNotificationPermission();
+  updateLiveUI();
+
+  setInterval(updateLiveUI, 15 * 1000);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      updateLiveUI();
+    }
+  });
+
+  window.addEventListener("focus", updateLiveUI);
+
+  window.addEventListener("storage", (e) => {
+    if (e.key === "timetable" || e.key === "timetableUpdated") {
+      updateLiveUI();
+    }
+  });
+
+});
+
 
 /* ========= INIT ========= */
 
@@ -590,4 +622,5 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
 
