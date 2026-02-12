@@ -1,587 +1,310 @@
-/*************************************************
- * DISCIPLINE TRACKER – STABLE & MANUAL START
- *************************************************/
-
-/* ========= NOTIFICATIONS ========= */
-function requestNotificationPermission() {
-  if ("Notification" in window) {
-    if (Notification.permission === "default") {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") {
-          console.log("Notification permission granted.");
-        } else {
-          console.log("Notification permission denied.");
-        }
-      });
-    } else if (Notification.permission === "granted") {
-      console.log("Notification permission already granted.");
-    } else {
-      console.log("Notification permission denied.");
-    }
-  } else {
-    console.log("Notifications not supported in this browser.");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Performance Details</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+  body { background: #f5f5f5; color: #333; font-family: Arial, sans-serif; }
+  header { 
+    background: #2c3e50; 
+    color: white; 
+    padding: 20px; 
+    border-bottom: 4px solid #3498db; 
   }
-}
-
-function notify(title, body) {
-  if ("Notification" in window && Notification.permission === "granted") {
-    console.log("Showing notification: " + title);
-    new Notification(title, { body });
-  } else {
-    console.log("Cannot show notification: permission not granted.");
+  .range-buttons button {
+    padding: 10px 16px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
   }
+  .range-buttons button:hover { background: #2980b9; }
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+  h3 { color: #2c3e50; margin-top: 0; }
+  canvas { max-height: 320px !important; width: 100% !important; }
+  .stats-text p { margin: 6px 0; font-size: 15px; }
+  .positive { color: #27ae60; font-weight: bold; }
+  .negative { color: #e74c3c; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Event Performance Trends</h1>
+    <button onclick="goHome()">← Back</button>
+  </div>
+
+  <div class="range-buttons">
+  <button onclick="setRange('day')">Today</button>
+  <button onclick="setRange('week')">7 Days</button>
+  <button onclick="setRange('month')">30 Days</button>
+  <button onclick="setRange('3months')">3 Months</button>
+  <button onclick="setRange('6months')">6 Months</button>
+  <button onclick="setRange('9months')">9 Months</button>
+</div>
+</header>
+
+<main id="chartsContainer">
+  <!-- Charts will be created here dynamically -->
+</main>
+
+<script>
+  let range = "month";  // default
+  let charts = [];
+
+  function goHome() {
+    window.location.href = "stats.html";  // or "index.html" if you prefer
+  }
+
+  function setRange(r) {
+    range = r;
+    drawEventCharts();
+  }
+
+  function getDaysForRange() {
+  if (range === "day") return 1;
+  if (range === "week") return 7;
+  if (range === "month") return 30;
+  if (range === "3months") return 91;     // ≈3 months (13 weeks)
+  if (range === "6months") return 182;    // ≈6 months
+  if (range === "9months") return 274;    // ≈9 months
+  return 30; // fallback
 }
 
-/* ========= SOUND ALERT ========= */
-let soundPlayedForSlot = null;
+  function formatDateDMY(iso) {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-");
+    return `${d}-${m}-${y}`;
+  }
 
-function playAlertSound(slotKey) {
-  if (soundPlayedForSlot === slotKey) return;
+  function todayKey(d = new Date()) {
+    return d.toISOString().split("T")[0];
+  }
 
-  const audio = new Audio(
-    "https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
-  );
+  function getTimetable() {
+    return JSON.parse(localStorage.getItem("timetable")) || [];
+  }
 
-  let count = 0;
-  const playThreeTimes = () => {
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-    console.log("Playing alert sound for slot: " + slotKey);  // ← debug log
-
-    count++;
-    if (count < 3) {
-      setTimeout(playThreeTimes, 1200); // ~1.2 seconds between beeps
-    } else {
-      soundPlayedForSlot = slotKey;
+  function getLogs(daysBack) {
+    const out = [];
+    const today = new Date();
+    for (let i = 0; i < daysBack; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = todayKey(d);
+      const log = JSON.parse(localStorage.getItem(key)) || [];
+      out.push({ date: key, log });
     }
-  };
+    return out.reverse();
+  }
+function groupByWeek(labels, values) {
+  if (labels.length <= 7) return { groupedLabels: labels, groupedValues: values }; // keep daily for short ranges
 
-  playThreeTimes();
-}
-
-function minutesToTime(mins) {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  const ampm = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 || 12;
-  return `${hour12.toString().padStart(2, "0")}:${m
-    .toString()
-    .padStart(2, "0")} ${ampm}`;
-}
-/* ========= HELPERS ========= */
-function toMinutes(t) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function nowMinutes() {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function formatNow() {
-  return new Date().toLocaleString();
-}
-
-function todayKey() {
-  return new Date().toISOString().split("T")[0];
-}
-
-/* ========= STORAGE ========= */
-function getLog() {
-  return JSON.parse(localStorage.getItem(todayKey())) || [];
-}
-
-function saveLog(log) {
-  localStorage.setItem(todayKey(), JSON.stringify(log));
-}
-
-/* ========= TIMETABLE ========= */
-function getTimetable() {
-  return JSON.parse(localStorage.getItem("timetable")) || [];
-}
-
-/* ========= CURRENT EVENT ========= */
-function getCurrentMainEvent() {
-  const now = nowMinutes();
-  return getTimetable().filter(e =>
-    now >= toMinutes(e.start) && now < toMinutes(e.end)
-  );
-}
-
-
-/* ========= HYDRATION (ONLY AFTER START) ========= */
-
-
-// Helper function – put this OUTSIDE of render(), for example right after render() ends
-function handleStartClick() {
-  const name     = this.dataset.name;
-  const start    = this.dataset.start;
-  const phase    = Number(this.dataset.phase);
-  const severity = Number(this.dataset.severity);
-
-  startMainEvent(name, start, phase, severity);
-}
-
-// ──────────────────────────────────────────────
-// Your render function – only small change at the end
-// ──────────────────────────────────────────────
-function render() {
-    // Optimization: skip redraw if still in the same minute
-    
-
-    syncLogsWithTimetable();
-
-    const container = document.getElementById("mainContainer");
-    const phaseInfo = document.getElementById("phaseInfo");
-
-    if (!container) {
-        console.error("mainContainer not found in HTML");
-        return;
+  const grouped = {};
+  values.forEach((val, i) => {
+    const weekNum = Math.floor(i / 7) + 1;
+    if (!grouped[weekNum]) {
+      grouped[weekNum] = { sum: 0, count: 0 };
     }
+    grouped[weekNum].sum += val;
+    grouped[weekNum].count += 1;
+  });
 
-    container.innerHTML = ""; // clear old content
-    
-    
-    const activeEvents = getCurrentMainEvent();
-    const log = getLog();
-    const waterInfo = shouldShowWaterReminder();
+  const groupedLabels = [];
+  const groupedValues = [];
+  Object.keys(grouped).sort((a,b)=>Number(a)-Number(b)).forEach(w => {
+    groupedLabels.push(`Week ${w}`);
+    groupedValues.push(Math.round(grouped[w].sum / grouped[w].count));
+  });
 
-    if (waterInfo) {
-        const waterCard = document.createElement("div");
-        waterCard.className = "card";
-        waterCard.innerHTML = `
-            <h2>💧 Drink Water (Hour ${waterInfo.slot + 1})</h2>
-            <p>${formatNow()}</p>
-<button class="water-btn"
-        data-slot="${waterInfo.slot}"
-        data-start="${waterInfo.startMinute}">
-                ✔ Done
-            </button>
-        `;
-        container.appendChild(waterCard);
+  return { groupedLabels, groupedValues };
+}
+  function drawEventCharts()
+   {
+    const days = getDaysForRange();
+    const data = getLogs(days);
+    const tt = getTimetable();
+    const container = document.getElementById("chartsContainer");
+    const dLabels = data.map(d => formatDateDMY(d.date));
 
-        // Add notification and sound here to always trigger when card shows
-        const slotKey = `${todayKey()}_daily_${waterInfo.slot}`;
-        if (!localStorage.getItem("notified_" + slotKey)) {
-            notify("💧 Drink Water", "Time for your hourly hydration!");
-            localStorage.setItem("notified_" + slotKey, "yes");
-        }
-        playAlertSound(slotKey);
+    // Clear previous charts & content
+    charts.forEach(c => c?.destroy?.());
+    charts = [];
+    container.innerHTML = "";
+
+    if (tt.length === 0) {
+      container.innerHTML = "<p style='text-align:center; color:#aaa;'>No events in timetable yet.</p>";
+      return;
     }
 
-    if (activeEvents.length === 0) {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-            <h2>No scheduled event right now</h2>
-        
-        `;
-        container.appendChild(card);
-        phaseInfo.innerText = "—";
-
-        // Independent daily hydration reminder
-        
+    if (data.length === 0) {
+      container.innerHTML = "<p style='text-align:center; color:#aaa;'>No data in selected range.</p>";
+      return;
     }
 
-    phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
+    // Main events
+    // Main events
+tt.forEach(event => {
+  const name = event.name;
+  const safeId = name.replace(/\s+/g, '_');
+  const maxScore = event.severity * 10;
 
-    activeEvents.forEach(event => {
-        const entry = log.find(e => e.name === event.name);
-        const entryStatus = entry 
-            ? (entry.score === null ? "🟢 Started | Score: Pending" : `✅ Completed | Score: ${entry.score}`)
-            : '';
-
-        // Main event card
-        const eventCard = document.createElement("div");
-        eventCard.className = "card";
-        eventCard.innerHTML = `
-            <h2>${event.name}</h2>
-            <p>${formatNow()}</p>
-            <p>${event.start} – ${event.end}</p>
-            <p>Severity: ${event.severity}</p>
-            ${entryStatus ? `<p>${entryStatus}</p>` : ''}
-            ${!entry ? `
-                <button class="start-btn" 
-                        data-name="${event.name}" 
-                        data-start="${event.start}" 
-                        data-phase="${event.phase}" 
-                        data-severity="${event.severity}">
-                    ▶ Start Event
-                </button>
-            ` : ''}
-        `;
-        container.appendChild(eventCard);
-
-        // Separate hydration card (only if applicable)
-        
-    });
-
-    // Finalize any pending past events in real-time
-    activeEvents.forEach(event => {
-        const entry = log.find(e => e.name === event.name);
-        if (entry && entry.started && entry.score === null && nowMinutes() >= toMinutes(event.end)) {
-            finalizeMainEvent(entry);
-            saveLog(log);
-        }
-    });
-
-    // Force finalize any ended event with pending score during render
-    activeEvents.forEach(event => {
-        const entry = log.find(e => e.name === event.name);
-        if (entry && entry.started && entry.score === null && nowMinutes() >= toMinutes(event.end)) {
-            finalizeMainEvent(entry);
-            saveLog(log);
-        }
-    });
-
-    // ──────────────────────────────────────────────
-    // IMPORTANT: Re-attach listeners to "Start Event" buttons EVERY TIME we render
-    // ──────────────────────────────────────────────
-    document.querySelectorAll('.start-btn[data-name]').forEach(btn => {
-        // Remove old listener first (prevents double clicks / memory issues)
-        btn.removeEventListener('click', handleStartClick);
-        btn.addEventListener('click', handleStartClick);
-    });
-    // Bind hydration buttons
-document.querySelectorAll('.water-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const slot = Number(this.dataset.slot);
-        const startMinute = Number(this.dataset.start);
-        markWater(slot, startMinute);
-    });
+  let percents = data.map(day => {
+  const entry = day.log.find(e => e.name === name);
+  if (!entry || entry.score == null) return 0;
+  return Math.round((entry.score / maxScore) * 100);
 });
 
-}
-// Ensure the buttons are clickable by adding event listeners again after rendering new events.
-function bindEventButtons() {
-  const startButtons = document.querySelectorAll(".start-btn");
-  startButtons.forEach(button => {
-    button.addEventListener("click", (e) => {
-      const eventName = e.target.getAttribute("data-event-name");
-      const eventStart = e.target.getAttribute("data-event-start");
-      const eventPhase = e.target.getAttribute("data-event-phase");
-      const eventSeverity = e.target.getAttribute("data-event-severity");
+let displayLabels = dLabels;
+let displayPercents = percents;
 
-      // Trigger the start event
-      startMainEvent(eventName, eventStart, eventPhase, eventSeverity);
-    });
-  });
+if (data.length > 7) {
+  const grouped = groupByWeek(dLabels, percents);
+  displayLabels = grouped.groupedLabels;
+  displayPercents = grouped.groupedValues;
 }
 
+  // Calculate progress stats
+  const nonZeroPercents = percents.filter(p => p > 0);
+  const avgPercent = percents.length > 0 ? Math.round(percents.reduce((sum, p) => sum + p, 0) / percents.length) : 0;
+  const progressDelta = percents.length > 1 ? percents[percents.length - 1] - percents[0] : 0;
+  const progressText = progressDelta > 0 ? `+${progressDelta}%` : `${progressDelta}%`;
+  const timesMissed = percents.filter(p => p === 0).length;
+  const bestPercent = Math.max(...percents);
+  const bestDayIndex = percents.indexOf(bestPercent);
+  const bestDay = bestDayIndex >= 0 ? dLabels[bestDayIndex] : 'N/A';
 
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h3>${name} (Phase ${event.phase}, Severity ${event.severity}) ${data.length > 7 ? '<small>(Weekly Averages)</small>' : ''}</h3>    <canvas id="evt_${safeId}"></canvas>
+    <div style="margin-top:12px; font-size:14px; color:#ccc;">
+      <p><strong>Average:</strong> ${avgPercent}%</p>
+      <p><strong>Progress (start to end):</strong> ${progressText}</p>
+      <p><strong>Times Missed:</strong> ${timesMissed} / ${percents.length} days</p>
+      <p><strong>Best Day:</strong> ${bestPercent}% on ${bestDay}</p>
+    </div>
+  `;
+  container.appendChild(card);
 
-  /* ---- MAIN EVENT CARD ---- */
-
-
-/* ========= START / COMPLETE ========= */
-function startMainEvent(name, start, phase, severity) {
-  const log = getLog();
-  if (log.some(e => e.name === name)) return;
-
-  log.push({
-    name,
-    phase,
-    severity,
-    start,
-    started: true,
-    startedAt: nowMinutes(),
-    delay: null,
-    score: null
-  });
-
-  saveLog(log);
-render();
-}
-
-function finalizeMainEvent(entry) {
-  const delay = Math.max(0, entry.startedAt - toMinutes(entry.start));
-  let score = 0;
-
-  if (delay <= 15) {
-    score = entry.severity * 10 - delay;
-    if (score < 0) score = 0;
-  }
-
-  entry.delay = delay;
-  entry.score = score;
-}
-
-/* ========= MICRO HABIT ========= */
-function markMicro(name, parent, slot, startMinute) {
-  const log = getLog();
-
-  const delay = Math.max(0, nowMinutes() - startMinute);
-  const score = delay <= 15 ? 10 - delay : 0;
-
-  log.push({
-    name,
-    parent,
-    slot,
-    phase: "micro",
-    severity: 1,
-    delay,
-    score
-  });
-
-  saveLog(log);
-  render();
-}
-
-/* ========= AUTO MISS (STRICT) ========= */
-function autoMiss() {
-  const now = nowMinutes();
-  const log = getLog();
-  const timetable = getTimetable();
-
-  timetable.forEach(event => {
-    const entry = log.find(l => l.name === event.name);
-
-    if (now >= toMinutes(event.end) && !entry) {
-      log.push({
-        name: event.name,
-        phase: event.phase,
-        severity: event.severity,
-        delay: 999, // mark entire time as wasted
-        score: 0,
-        autoMissed: true
-      });
-    }
-
-    if (entry && entry.started && entry.score === null && now >= toMinutes(event.end)) {
-      finalizeMainEvent(entry);
-    }
-  });
-
-  saveLog(log);
-  // ──────────────────────────────────────────────
-  // NEW: Penalize ignored hydration slots at end of day
-  // ──────────────────────────────────────────────
-  
-}
-
-/* ========= NAV ========= */
-document.getElementById("historyBtn").onclick = () => {
-  window.location.href = "history.html";
-};
-
-document.getElementById("statsBtn").onclick = () => {
-  window.location.href = "stats.html";
-};
-
-/* ========= INIT ========= */
-
-
-
-function updateLiveClock() {
-  const clock = document.getElementById("liveClock");
-  if (!clock) return;
-
-  const now = new Date();
-  clock.innerHTML = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  });
-}
-
-// start live clock
-updateLiveClock();
-setInterval(updateLiveClock, 1000);
-
-function syncLogsWithTimetable() {
-  const timetable = getTimetable();
-  const validNames = timetable.map(e => e.name);
-
-  const log = getLog();
-  const cleaned = log.filter(e =>
-  e.phase === "micro" ||
-  e.phase === "hydration" ||
-  validNames.includes(e.name)
-);
-
-
-  if (cleaned.length !== log.length) {
-    saveLog(cleaned);
-  }
-}
-
-// ================= TIMETABLE-BASED HYDRATION & DAY BOUNDARY =================
-
-function getDayStartMinute() {
-  const tt = getTimetable();
-  if (tt.length === 0) return null;
-  return Math.min(...tt.map(e => toMinutes(e.start)));
-}
-
-function getDayEndMinute() {
-  const tt = getTimetable();
-  if (tt.length === 0) return null;
-  return Math.max(...tt.map(e => toMinutes(e.end)));
-}
-
-function getCurrentWaterSlot() {
-  const dayStart = getDayStartMinute();
-  if (dayStart === null) return null;
-
-  const now = nowMinutes();
-  if (now < dayStart) return null;
-
-  const elapsed = now - dayStart;
-  return Math.floor(elapsed / 60);
-}
-
-function shouldShowWaterReminder() {
-  const dayStart = getDayStartMinute();
-  if (dayStart === null) return null;
-
-  const now = nowMinutes();
-  if (now < dayStart) return null;
-
-  const dayEnd = getDayEndMinute();
-  if (dayEnd !== null && now >= dayEnd) return null;
-
-  const elapsed = now - dayStart;
-
-  // 🔥 IMPORTANT CHANGE:
-  // Slot 0 = first event start time
-  const slot = Math.floor(elapsed / 60);
-
-  const log = getLog();
-
-  // 🔴 Penalize previous slot if missed
-  if (slot > 0) {
-    const prevSlot = slot - 1;
-
-    const alreadyLogged = log.some(
-      e => e.name === "Drink Water" && e.slot === prevSlot
-    );
-
-    if (!alreadyLogged) {
-      log.push({
-        name: "Drink Water",
-        parent: "Daily Hydration",
-        slot: prevSlot,
-        phase: "hydration",
-        severity: 1,
-        delay: 999,
-        score: 0
-      });
-
-      saveLog(log);
+  const canvas = document.getElementById(`evt_${safeId}`);
+  charts.push(new Chart(canvas, {
+  type: 'line',
+  data: {
+    labels: displayLabels,               // ← changed
+    datasets: [{
+      label: `${name} Performance (%)`,
+      data: displayPercents,             // ← changed
+      borderColor: '#27ae60',
+      backgroundColor: 'rgba(39,174,96,0.15)',
+      fill: true,
+      tension: 0.1,
+      pointRadius: 4,
+      pointBackgroundColor: '#27ae60'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,         // ← important: allows taller charts
+    scales: {
+      y: {
+        min: 0,
+        max: 100,
+        ticks: { stepSize: 20 }
+      },
+      x: {
+        ticks: {
+          autoSkip: false,              // ← NO skipping
+          maxRotation: 45,
+          minRotation: 45,
+          font: { size: 11 }
+        }
+      }
+    },
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: { enabled: true }
     }
   }
-
-  // 🔵 Show reminder only if current slot not logged
-  const currentLogged = log.some(
-    e => e.name === "Drink Water" && e.slot === slot
-  );
-
-  if (currentLogged) return null;
-
-  const startMin = dayStart + slot * 60;
-
-  return { slot, startMinute: startMin };
-}
-
-
-
-function markWaterDone(slot) {
-  render();
-}
-
-function markWater(slot, startMinute) {
-  const log = getLog();
-
-  // 🚫 Prevent duplicate logging for same slot
-  const alreadyLogged = log.some(
-    e => e.name === "Drink Water" && e.slot === slot
-  );
-
-  if (alreadyLogged) {
-    render();
-    return;
-  }
-
-  const delay = Math.max(0, nowMinutes() - startMinute);
-  const score = delay <= 15 ? 10 - delay : 0;
-
-  log.push({
-    name: "Drink Water",
-    parent: "Daily Hydration",
-    slot,
-    phase: "hydration",
-    severity: 1,
-    delay,
-    score
-  });
-
-  saveLog(log);
-  render();
-}
-
-
-// ──────────────────────────────────────────────
-// LIVE UPDATES – clock + events + hydration + auto-miss
-// ──────────────────────────────────────────────
-
-function updateLiveUI() {
-    updateLiveClock();     // refresh clock
-    autoMiss();            // check for missed/ended events
-    render();              // update screen
-}
-
-// First run when page loads
-requestNotificationPermission();
-updateLiveUI();
-
-// Update every 15 seconds (smooth + battery friendly)
-setInterval(updateLiveUI, 15 * 1000);
-
-// Refresh when user returns to this tab
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-        updateLiveUI();
-    }
+}));
 });
 
-// Extra refresh on focus (helps in some browsers)
-window.addEventListener("focus", updateLiveUI);
-
-// Keep listening for timetable changes from admin page
-window.addEventListener("storage", (e) => {
-    if (e.key === "timetable" || e.key === "timetableUpdated") {
-        updateLiveUI();
-    }
+    // Hydration chart
+    // Hydration chart
+let hydPercents = data.map(d => {
+  const drinks = d.log.filter(e => e.name === "Drink Water");
+  if (drinks.length === 0) return 0;
+  const done = drinks.filter(e => e.score > 0).length;
+  return Math.round((done / drinks.length) * 100);
 });
-// Helper to calculate total unique scheduled minutes from timetable (merges overlaps)
-function getTotalUniqueScheduledMinutes(tt) {
-  if (tt.length === 0) return 0;
 
-  // Sort events by start time
-  const events = tt.slice().sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+let displayHydLabels = dLabels;
+let displayHydPercents = hydPercents;
 
-  let total = 0;
-  let currentStart = toMinutes(events[0].start);
-  let currentEnd = toMinutes(events[0].end);
+if (data.length > 7) {
+  const groupedHyd = groupByWeek(dLabels, hydPercents);
+  displayHydLabels = groupedHyd.groupedLabels;
+  displayHydPercents = groupedHyd.groupedValues;
+}
 
-  for (let i = 1; i < events.length; i++) {
-    const start = toMinutes(events[i].start);
-    const end = toMinutes(events[i].end);
+// Calculate progress stats for hydration
+const nonZeroHyd = hydPercents.filter(p => p > 0);
+const avgHyd = hydPercents.length > 0 ? Math.round(hydPercents.reduce((sum, p) => sum + p, 0) / hydPercents.length) : 0;
+const progressHydDelta = hydPercents.length > 1 ? hydPercents[hydPercents.length - 1] - hydPercents[0] : 0;
+const progressHydText = progressHydDelta > 0 ? `+${progressHydDelta}%` : `${progressHydDelta}%`;
+const timesMissedHyd = hydPercents.filter(p => p === 0).length;
+const bestHyd = Math.max(...hydPercents);
+const bestHydIndex = hydPercents.indexOf(bestHyd);
+const bestHydDay = bestHydIndex >= 0 ? dLabels[bestHydIndex] : 'N/A';
 
-    if (start >= currentEnd) {
-      // No overlap, add previous duration
-      total += currentEnd - currentStart;
-      currentStart = start;
-      currentEnd = end;
-    } else {
-      // Overlap, extend end if needed
-      currentEnd = Math.max(currentEnd, end);
-    }
+const hydCard = document.createElement("div");
+hydCard.className = "card";
+hydCard.innerHTML = `
+  <h3>Hydration Consistency ${data.length > 7 ? '<small>(Weekly Averages)</small>' : ''}</h3>  <canvas id="evt_Hydration"></canvas>
+  <div style="margin-top:12px; font-size:14px; color:#ccc;">
+    <p><strong>Average:</strong> ${avgHyd}%</p>
+    <p><strong>Progress (start to end):</strong> ${progressHydText}</p>
+    <p><strong>Days with 0%:</strong> ${timesMissedHyd} / ${hydPercents.length} days</p>
+    <p><strong>Best Day:</strong> ${bestHyd}% on ${bestHydDay}</p>
+  </div>
+`;
+container.appendChild(hydCard);
+
+const hydCanvas = document.getElementById("evt_Hydration");
+charts.push(new Chart(hydCanvas, {
+  type: 'line',
+  data: {
+    labels: displayHydLabels,            // ← changed
+    datasets: [{
+      label: 'Hydration %',
+      data: displayHydPercents,          // ← changed
+      borderColor: '#2196f3',
+      backgroundColor: 'rgba(33,150,243,0.12)',
+      fill: true,
+      tension: 0.25
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: { y: { min: 0, max: 100 } }
+  }
+}));
   }
 
-  // Add the last interval
-  total += currentEnd - currentStart;
-
-  return total;
-}
+  // Initial load
+  drawEventCharts();
+</script>
+</body>
+</html>
