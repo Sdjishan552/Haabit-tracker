@@ -368,8 +368,8 @@ function autoMiss() {
   const dayEnd = getDayEndMinute();
 
   if (dayStart !== null && dayEnd !== null) {
-    const now = nowMinutes();
     const elapsed = now - dayStart;
+
     const currentSlot = Math.floor(elapsed / 60);
 
     for (let s = 0; s < currentSlot; s++) {
@@ -621,6 +621,7 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
 
 
 
