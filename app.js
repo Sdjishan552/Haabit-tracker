@@ -138,10 +138,22 @@ function getTimetable() {
 /* ========= CURRENT EVENT ========= */
 function getCurrentMainEvent() {
   const now = nowMinutes();
-  return getTimetable().filter(e =>
-    now >= toMinutes(e.start) && now < toMinutes(e.end)
-  );
+
+  // ALWAYS fetch fresh timetable from localStorage
+  const timetable = JSON.parse(localStorage.getItem("timetable") || "[]");
+
+  if (!Array.isArray(timetable)) return [];
+
+  return timetable.filter(e => {
+    if (!e || !e.start || !e.end) return false;
+
+    const start = toMinutes(e.start);
+    const end = toMinutes(e.end);
+
+    return !isNaN(start) && !isNaN(end) && now >= start && now < end;
+  });
 }
+
 
 
 /* ========= HYDRATION (ONLY AFTER START) ========= */
@@ -424,7 +436,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  window.addEventListener("focus", updateLiveUI);
+window.addEventListener("focus", () => {
+  location.reload();
+});
 
   window.addEventListener("storage", (e) => {
     if (e.key === "timetable" || e.key === "timetableUpdated") {
