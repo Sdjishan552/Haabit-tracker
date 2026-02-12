@@ -351,7 +351,7 @@ function autoMiss() {
         name: event.name,
         phase: event.phase,
         severity: event.severity,
-        delay: 999, // mark entire time as wasted
+        delay: 999,
         score: 0,
         autoMissed: true
       });
@@ -362,36 +362,46 @@ function autoMiss() {
     }
   });
 
+  // 👇👇👇 ADD THIS BLOCK RIGHT HERE 👇👇👇
+
+  const dayStart = getDayStartMinute();
+  const dayEnd = getDayEndMinute();
+
+  if (dayStart !== null && dayEnd !== null) {
+    const now = nowMinutes();
+    const elapsed = now - dayStart;
+    const currentSlot = Math.floor(elapsed / 60);
+
+    for (let s = 0; s < currentSlot; s++) {
+      const alreadyLogged = log.some(
+        e => e.name === "Drink Water" && e.slot === s
+      );
+
+      if (!alreadyLogged) {
+        log.push({
+          name: "Drink Water",
+          parent: "Daily Hydration",
+          slot: s,
+          phase: "hydration",
+          severity: 1,
+          delay: 999,
+          score: 0
+        });
+      }
+    }
+  }
+
+  // 👆👆👆 END OF ADDED BLOCK 👆👆👆
+
   saveLog(log);
+}
+
   // ──────────────────────────────────────────────
   // NEW: Penalize ignored hydration slots at end of day
   // ──────────────────────────────────────────────
   // ──────────────────────────────────────────────
 // NEW: Penalize ignored hydration slots at end of day
 // ──────────────────────────────────────────────
-const dayStart = getDayStartMinute();
-const dayEnd = getDayEndMinute();
-if (dayStart !== null && dayEnd !== null && now >= dayEnd) {
-  const totalSlots = Math.floor((dayEnd - dayStart) / 60);
-  let updated = false;
-  for (let s = 0; s <= totalSlots; s++) {
-    const alreadyLogged = log.some(e => e.name === "Drink Water" && e.slot === s);
-    if (!alreadyLogged) {
-      log.push({
-        name: "Drink Water",
-        parent: "Daily Hydration",
-        slot: s,
-        phase: "hydration",
-        severity: 1,
-        delay: 999,
-        score: 0
-      });
-      updated = true;
-    }
-  }
-  if (updated) saveLog(log);
-}
-}
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -611,6 +621,7 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
 
 
 
