@@ -601,7 +601,29 @@ function updateLiveUI() {
     render();              // update screen
 }
 
+// First run when page loads
+requestNotificationPermission();
+updateLiveUI();
 
+// Update every 15 seconds (smooth + battery friendly)
+setInterval(updateLiveUI, 15 * 1000);
+
+// Refresh when user returns to this tab
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        updateLiveUI();
+    }
+});
+
+// Extra refresh on focus (helps in some browsers)
+window.addEventListener("focus", updateLiveUI);
+
+// Keep listening for timetable changes from admin page
+window.addEventListener("storage", (e) => {
+    if (e.key === "timetable" || e.key === "timetableUpdated") {
+        updateLiveUI();
+    }
+});
 // Helper to calculate total unique scheduled minutes from timetable (merges overlaps)
 function getTotalUniqueScheduledMinutes(tt) {
   if (tt.length === 0) return 0;
