@@ -19,7 +19,7 @@
   
 <div class="system-status">
   <div id="liveClock" class="live-clock"></div>
-  <div class="system-version">JARVIS v1.5</div>
+  <div class="system-version">JARVIS v1.1</div>
 </div>
 
   <!-- HEADER -->
@@ -59,36 +59,15 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(registration => {
-
-        registration.onupdatefound = () => {
-          const newWorker = registration.installing;
-
-          newWorker.onstatechange = () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              
-              if (confirm("New version available. Update now?")) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            }
-          };
-        };
-      });
-  });
-
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
-}
-
+navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
   function goNotifications() {
-location.href = "./notifications.html";
+    console.log("Bell clicked, redirecting to notifications...");
+    location.href = "/notifications.html";
   }
 </script>
 </body>
 </html>
-
-
