@@ -98,8 +98,13 @@ function saveLog(log) {
 
 /* ========= TIMETABLE ========= */
 function getTimetable() {
-  return JSON.parse(localStorage.getItem("timetable")) || [];
+  const data = JSON.parse(localStorage.getItem("timetable") || "[]");
+
+  if (!Array.isArray(data)) return [];
+
+  return data;
 }
+
 
 /* ========= CURRENT EVENT ========= */
 function getCurrentMainEvent() {
@@ -585,3 +590,4 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
