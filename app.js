@@ -115,12 +115,17 @@ function getTimetable() {
 
     if (!Array.isArray(data)) return [];
 
-    return data.filter(e =>
-      e &&
-      typeof e.start === "string" &&
-      typeof e.end === "string" &&
-      e.name
-    );
+    return data.filter(e => {
+      if (!e || typeof e.start !== "string" || typeof e.end !== "string" || !e.name) return false;
+
+      // Only allow correct time format like 08:00 or 14:30
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(e.start) || !timeRegex.test(e.end)) return false;
+
+      const startMin = toMinutes(e.start);
+      const endMin = toMinutes(e.end);
+      return !isNaN(startMin) && !isNaN(endMin) && startMin < endMin;
+    });
 
   } catch (err) {
     console.error("Timetable corrupted. Resetting.", err);
@@ -128,7 +133,6 @@ function getTimetable() {
     return [];
   }
 }
-
 
 
 /* ========= CURRENT EVENT ========= */
@@ -201,18 +205,16 @@ function render() {
     }
 
     if (activeEvents.length === 0) {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-            <h2>No scheduled event right now</h2>
-        
-        `;
-        container.appendChild(card);
-if (phaseInfo) phaseInfo.innerText = "—";
-
-        // Independent daily hydration reminder
-        
-    }
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+        <h2>No scheduled event right now</h2>
+    `;
+    container.appendChild(card);
+    if (phaseInfo) phaseInfo.innerText = "—";
+} else {
+    if (phaseInfo) phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
+}
 
 if (phaseInfo)
   phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
@@ -473,13 +475,21 @@ function syncLogsWithTimetable() {
 function getDayStartMinute() {
   const tt = getTimetable();
   if (tt.length === 0) return null;
-  return Math.min(...tt.map(e => toMinutes(e.start)));
+
+  const starts = tt.map(e => toMinutes(e.start)).filter(n => !isNaN(n));
+  if (starts.length === 0) return null;
+
+  return Math.min(...starts);
 }
 
 function getDayEndMinute() {
   const tt = getTimetable();
   if (tt.length === 0) return null;
-  return Math.max(...tt.map(e => toMinutes(e.end)));
+
+  const ends = tt.map(e => toMinutes(e.end)).filter(n => !isNaN(n));
+  if (ends.length === 0) return null;
+
+  return Math.max(...ends);
 }
 
 function getCurrentWaterSlot() {
