@@ -168,7 +168,6 @@ function render() {
     // Optimization: skip redraw if still in the same minute
     
 
-    syncLogsWithTimetable();
 
     const container = document.getElementById("mainContainer");
     const phaseInfo = document.getElementById("phaseInfo");
@@ -610,4 +609,5 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
 
