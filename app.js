@@ -572,10 +572,12 @@ function markWater(slot, startMinute) {
 // ──────────────────────────────────────────────
 
 function updateLiveUI() {
-    updateLiveClock();     // refresh clock
-    autoMiss();            // check for missed/ended events
-    render();              // update screen
+    updateLiveClock();
+    syncLogsWithTimetable();
+    autoMiss();
+    render();
 }
+
 
 
 // Helper to calculate total unique scheduled minutes from timetable (merges overlaps)
@@ -609,5 +611,6 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
 
 
