@@ -16,12 +16,16 @@
 <link rel="apple-touch-icon" href="assets/icon-192.png"></head>
 
 <body>
-<div id="liveClock" class="live-clock"></div>
+  
+<div class="system-status">
+  <div id="liveClock" class="live-clock"></div>
+  <div class="system-version">JARVIS v1.1</div>
+</div>
 
   <!-- HEADER -->
   <header class="home-header">
+    
   <h1>Daily Discipline</h1>
-<p style="color:red;">VERSION 999</p>
 
   <div class="header-right">
     <span id="phaseInfo">Loading…</span>
@@ -40,6 +44,7 @@
     <button id="historyBtn">📘 History</button>
     <button id="statsBtn">📊 Stats</button>
     <button onclick="goAdmin()" title="Admin">⚙️</button>
+    
   </footer>
 
   <!-- Core Logic -->
@@ -65,4 +70,3 @@ location.href = "./notifications.html";
 </script>
 </body>
 </html>
-
