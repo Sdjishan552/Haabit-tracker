@@ -138,19 +138,12 @@ function getTimetable() {
 /* ========= CURRENT EVENT ========= */
 function getCurrentMainEvent() {
   const now = nowMinutes();
-
-  // ALWAYS fetch fresh timetable from localStorage
-  const timetable = JSON.parse(localStorage.getItem("timetable") || "[]");
-
-  if (!Array.isArray(timetable)) return [];
+  const timetable = getTimetable();   // ✅ Use validated timetable
 
   return timetable.filter(e => {
-    if (!e || !e.start || !e.end) return false;
-
     const start = toMinutes(e.start);
     const end = toMinutes(e.end);
-
-    return !isNaN(start) && !isNaN(end) && now >= start && now < end;
+    return now >= start && now < end;
   });
 }
 
@@ -221,16 +214,19 @@ function render() {
     }
 
     if (activeEvents.length === 0) {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-        <h2>No scheduled event right now</h2>
-    `;
-    container.appendChild(card);
-    if (phaseInfo) phaseInfo.innerText = "—";
+  if (phaseInfo) phaseInfo.innerText = "No Active Phase";
 } else {
-    if (phaseInfo) phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
+  const phases = activeEvents
+    .map(e => e.phase || "")
+    .filter(p => p !== "");
+
+  if (phaseInfo) {
+    phaseInfo.innerText = phases.length > 0
+      ? `Phase ${phases.join(", ")}`
+      : "Active Event";
+  }
 }
+
 
 
     activeEvents.forEach(event => {
