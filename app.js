@@ -156,7 +156,11 @@ function handleStartClick() {
 
   startMainEvent(name, start, phase, severity);
 }
-
+function handleWaterClick() {
+  const slot = Number(this.dataset.slot);
+  const startMinute = Number(this.dataset.start);
+  markWater(slot, startMinute);
+}
 // ──────────────────────────────────────────────
 // Your render function – only small change at the end
 // ──────────────────────────────────────────────
@@ -276,13 +280,9 @@ function render() {
     });
     // Bind hydration buttons
 document.querySelectorAll('.water-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const slot = Number(this.dataset.slot);
-        const startMinute = Number(this.dataset.start);
-        markWater(slot, startMinute);
-    });
+    btn.removeEventListener('click', handleWaterClick);
+    btn.addEventListener('click', handleWaterClick);
 });
-
 }
 // Ensure the buttons are clickable by adding event listeners again after rendering new events.
 function bindEventButtons() {
@@ -388,7 +388,31 @@ function autoMiss() {
   // ──────────────────────────────────────────────
   // NEW: Penalize ignored hydration slots at end of day
   // ──────────────────────────────────────────────
-  
+  // ──────────────────────────────────────────────
+// NEW: Penalize ignored hydration slots at end of day
+// ──────────────────────────────────────────────
+const dayStart = getDayStartMinute();
+const dayEnd = getDayEndMinute();
+if (dayStart !== null && dayEnd !== null && now >= dayEnd) {
+  const totalSlots = Math.floor((dayEnd - dayStart) / 60);
+  let updated = false;
+  for (let s = 0; s <= totalSlots; s++) {
+    const alreadyLogged = log.some(e => e.name === "Drink Water" && e.slot === s);
+    if (!alreadyLogged) {
+      log.push({
+        name: "Drink Water",
+        parent: "Daily Hydration",
+        slot: s,
+        phase: "hydration",
+        severity: 1,
+        delay: 999,
+        score: 0
+      });
+      updated = true;
+    }
+  }
+  if (updated) saveLog(log);
+}
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -519,28 +543,24 @@ function shouldShowWaterReminder() {
 
   const log = getLog();
 
-  // 🔴 Penalize previous slot if missed
-  if (slot > 0) {
-    const prevSlot = slot - 1;
-
-    const alreadyLogged = log.some(
-      e => e.name === "Drink Water" && e.slot === prevSlot
-    );
-
-    if (!alreadyLogged) {
-      log.push({
-        name: "Drink Water",
-        parent: "Daily Hydration",
-        slot: prevSlot,
-        phase: "hydration",
-        severity: 1,
-        delay: 999,
-        score: 0
-      });
-
-      saveLog(log);
-    }
+  // 🔴 Penalize ALL previous missed slots
+for (let s = 0; s < slot; s++) {
+  const alreadyLogged = log.some(
+    e => e.name === "Drink Water" && e.slot === s
+  );
+  if (!alreadyLogged) {
+    log.push({
+      name: "Drink Water",
+      parent: "Daily Hydration",
+      slot: s,
+      phase: "hydration",
+      severity: 1,
+      delay: 999,
+      score: 0
+    });
   }
+}
+if (slot > 0) saveLog(log); // Save only if we added something
 
   // 🔵 Show reminder only if current slot not logged
   const currentLogged = log.some(
