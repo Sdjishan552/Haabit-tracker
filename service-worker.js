@@ -1,5 +1,4 @@
-const CACHE_NAME = "discipline-tracker-v4"; // 🔥 change version whenever you update app
-
+const CACHE_NAME = "discipline-tracker-v4";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -62,3 +61,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
