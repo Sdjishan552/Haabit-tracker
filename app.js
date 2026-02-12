@@ -216,8 +216,6 @@ function render() {
     if (phaseInfo) phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
 }
 
-if (phaseInfo)
-  phaseInfo.innerText = `Phase ${activeEvents.map(e => e.phase).join(', ')}`;
 
     activeEvents.forEach(event => {
         const entry = log.find(e => e.name === event.name);
