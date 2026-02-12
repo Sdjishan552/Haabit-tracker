@@ -156,20 +156,22 @@ function getCurrentMainEvent() {
 function handleStartClick() {
   const name     = this.dataset.name;
   const start    = this.dataset.start;
-  const phase    = Number(this.dataset.phase);
-  const severity = Number(this.dataset.severity);
+  const phase    = Number(this.dataset.phase) || 0; // Default to 0 if missing
+  const severity = Number(this.dataset.severity) || 1; // Default to 1 if missing
 
   startMainEvent(name, start, phase, severity);
 }
 function handleWaterClick() {
   const slot = Number(this.dataset.slot);
   const startMinute = Number(this.dataset.start);
+  console.log("Water Done clicked for slot:", slot, "start:", startMinute);
   markWater(slot, startMinute);
 }
 // ──────────────────────────────────────────────
 // Your render function – only small change at the end
 // ──────────────────────────────────────────────
 function render() {
+  try {
     // Optimization: skip redraw if still in the same minute
     
 
@@ -242,14 +244,14 @@ function render() {
             <h2>${event.name}</h2>
             <p>${formatNow()}</p>
             <p>${event.start} – ${event.end}</p>
-            <p>Severity: ${event.severity}</p>
+            <p>Severity: ${event.severity || 1}</p>
             ${entryStatus ? `<p>${entryStatus}</p>` : ''}
             ${!entry ? `
                 <button class="start-btn" 
                         data-name="${event.name}" 
                         data-start="${event.start}" 
-                        data-phase="${event.phase}" 
-                        data-severity="${event.severity}">
+                        data-phase="${event.phase || 0}" 
+                        data-severity="${event.severity || 1}">
                     ▶ Start Event
                 </button>
             ` : ''}
@@ -283,15 +285,12 @@ document.querySelectorAll('.water-btn').forEach(btn => {
     btn.removeEventListener('click', handleWaterClick);
     btn.addEventListener('click', handleWaterClick);
 });
+  } catch (err) {
+    console.error("Error in render:", err);
+    const phaseInfo = document.getElementById("phaseInfo");
+    if (phaseInfo) phaseInfo.innerText = "Error - Check Console";
+  }
 }
-// Ensure the buttons are clickable by adding event listeners again after rendering new events.
-
-
-
-
-  /* ---- MAIN EVENT CARD ---- */
-
-
 /* ========= START / COMPLETE ========= */
 function startMainEvent(name, start, phase, severity) {
   const log = getLog();
@@ -314,10 +313,11 @@ render();
 
 function finalizeMainEvent(entry) {
   const delay = Math.max(0, entry.startedAt - toMinutes(entry.start));
+  const severity = entry.severity || 1;
   let score = 0;
 
   if (delay <= 15) {
-    score = entry.severity * 10 - delay;
+    score = severity * 10 - delay;
     if (score < 0) score = 0;
   }
 
@@ -571,6 +571,7 @@ function markWaterDone(slot) {
 
 function markWater(slot, startMinute) {
   const log = getLog();
+  console.log("Marking water as done for slot: " + slot);  // Debug: Check if function runs
 
   // 🚫 Prevent duplicate logging for same slot
   const alreadyLogged = log.some(
