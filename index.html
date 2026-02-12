@@ -65,9 +65,15 @@ navigator.serviceWorker.register('service-worker.js')
     });
   }
   function goNotifications() {
-    console.log("Bell clicked, redirecting to notifications...");
-    location.href = "/notifications.html";
-  }
+  console.log("Bell button clicked!");
+  console.log("Trying to go to: notifications.html");
+  
+  // Try relative path first (most reliable in local files)
+  location.href = "notifications.html";
+  
+  // If that fails in some setups, you can also try:
+  // location.href = "./notifications.html";
+}
 </script>
 </body>
 </html>
