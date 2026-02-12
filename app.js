@@ -437,10 +437,13 @@ window.addEventListener("focus", () => {
 });
 
   window.addEventListener("storage", (e) => {
-    if (e.key === "timetable" || e.key === "timetableUpdated") {
-      updateLiveUI();
-    }
-  });
+  if (e.key === "timetable" || e.key === "timetableUpdated") {
+    setTimeout(() => {
+      location.reload();
+    }, 100);
+  }
+});
+
 
 });
 
@@ -468,17 +471,20 @@ function syncLogsWithTimetable() {
   const timetable = getTimetable();
   const validNames = timetable.map(e => e.name);
 
-  const log = getLog();
-  const cleaned = log.filter(e =>
-  e.phase === "micro" ||
-  e.phase === "hydration" ||
-  validNames.includes(e.name)
-);
+  const today = todayKey();
+  let log = getLog();
 
+  // Remove events that no longer exist
+  log = log.filter(e =>
+    e.phase === "micro" ||
+    e.phase === "hydration" ||
+    validNames.includes(e.name)
+  );
 
-  if (cleaned.length !== log.length) {
-    saveLog(cleaned);
-  }
+  localStorage.setItem(today, JSON.stringify(log));
+
+  // 🔥 Force fresh evaluation after timetable change
+  window.__timetableSynced = true;
 }
 
 // ================= TIMETABLE-BASED HYDRATION & DAY BOUNDARY =================
