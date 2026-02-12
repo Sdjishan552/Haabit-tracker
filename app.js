@@ -253,15 +253,7 @@ function render() {
     });
 
     // Finalize any pending past events in real-time
-    activeEvents.forEach(event => {
-        const entry = log.find(e => e.name === event.name);
-        if (entry && entry.started && entry.score === null && nowMinutes() >= toMinutes(event.end)) {
-            finalizeMainEvent(entry);
-            saveLog(log);
-        }
-    });
-
-    // Force finalize any ended event with pending score during render
+        // Force finalize any ended event with pending score during render
     activeEvents.forEach(event => {
         const entry = log.find(e => e.name === event.name);
         if (entry && entry.started && entry.score === null && nowMinutes() >= toMinutes(event.end)) {
@@ -285,20 +277,7 @@ document.querySelectorAll('.water-btn').forEach(btn => {
 });
 }
 // Ensure the buttons are clickable by adding event listeners again after rendering new events.
-function bindEventButtons() {
-  const startButtons = document.querySelectorAll(".start-btn");
-  startButtons.forEach(button => {
-    button.addEventListener("click", (e) => {
-      const eventName = e.target.getAttribute("data-event-name");
-      const eventStart = e.target.getAttribute("data-event-start");
-      const eventPhase = e.target.getAttribute("data-event-phase");
-      const eventSeverity = e.target.getAttribute("data-event-severity");
 
-      // Trigger the start event
-      startMainEvent(eventName, eventStart, eventPhase, eventSeverity);
-    });
-  });
-}
 
 
 
@@ -621,29 +600,7 @@ function updateLiveUI() {
     render();              // update screen
 }
 
-// First run when page loads
-requestNotificationPermission();
-updateLiveUI();
 
-// Update every 15 seconds (smooth + battery friendly)
-setInterval(updateLiveUI, 15 * 1000);
-
-// Refresh when user returns to this tab
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-        updateLiveUI();
-    }
-});
-
-// Extra refresh on focus (helps in some browsers)
-window.addEventListener("focus", updateLiveUI);
-
-// Keep listening for timetable changes from admin page
-window.addEventListener("storage", (e) => {
-    if (e.key === "timetable" || e.key === "timetableUpdated") {
-        updateLiveUI();
-    }
-});
 // Helper to calculate total unique scheduled minutes from timetable (merges overlaps)
 function getTotalUniqueScheduledMinutes(tt) {
   if (tt.length === 0) return 0;
