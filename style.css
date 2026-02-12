@@ -411,7 +411,18 @@ canvas {
 }
 
 .admin-card button:hover {
-  background: #000000;
+  background: #0000;
   transform: translateY(-1px);
 }
 
+.system-status {
+  text-align: center;
+}
+
+.system-version {
+  font-size: 11px;
+  opacity: 0.8;        /* slightly higher so red is visible */
+  letter-spacing: 1px;
+  margin-top: 2px;
+color: #e10600;
+}
