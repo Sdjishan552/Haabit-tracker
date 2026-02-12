@@ -515,33 +515,10 @@ function shouldShowWaterReminder() {
   if (dayEnd !== null && now >= dayEnd) return null;
 
   const elapsed = now - dayStart;
-
-  // 🔥 IMPORTANT CHANGE:
-  // Slot 0 = first event start time
   const slot = Math.floor(elapsed / 60);
 
   const log = getLog();
 
-  // 🔴 Penalize ALL previous missed slots
-for (let s = 0; s < slot; s++) {
-  const alreadyLogged = log.some(
-    e => e.name === "Drink Water" && e.slot === s
-  );
-  if (!alreadyLogged) {
-    log.push({
-      name: "Drink Water",
-      parent: "Daily Hydration",
-      slot: s,
-      phase: "hydration",
-      severity: 1,
-      delay: 999,
-      score: 0
-    });
-  }
-}
-if (slot > 0) saveLog(log); // Save only if we added something
-
-  // 🔵 Show reminder only if current slot not logged
   const currentLogged = log.some(
     e => e.name === "Drink Water" && e.slot === slot
   );
@@ -552,6 +529,7 @@ if (slot > 0) saveLog(log); // Save only if we added something
 
   return { slot, startMinute: startMin };
 }
+
 
 
 
@@ -632,3 +610,4 @@ function getTotalUniqueScheduledMinutes(tt) {
 
   return total;
 }
+
